@@ -1,2 +1,2 @@
 # wingo
-web framework
+web framework under gin.
