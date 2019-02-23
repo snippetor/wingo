@@ -15,7 +15,7 @@ func ContextLog(c *Context) {
 }
 
 type Context struct {
-	fasthttp.RequestCtx
+	*fasthttp.RequestCtx
 	id    uint32
 	chain *HandlersChain
 }
@@ -51,10 +51,13 @@ func (c *Context) IsStopped() bool {
 }
 
 func (c *Context) RequestBody(body interface{}) {
-	globalCodec.Unmarshal(c.Request.Body(), body)
+	err := globalCodec.Unmarshal(c.Request.Body(), body)
+	if err != nil {
+		panic(err)
+	}
 }
 
-func (c *Context) ResponseBody(body interface{}) {
+func (c *Context) Success(body interface{}) {
 	c.Response.SetStatusCode(fasthttp.StatusOK)
 	bs, err := globalCodec.Marshal(body)
 	if err != nil {

@@ -22,7 +22,7 @@ func (c *HandlersChain) Append(handlers ...Handler) {
 	c.handlers = append(c.handlers, handlers...)
 }
 
-func (c *HandlersChain) Set(handlers ...Handler) {
+func (c *HandlersChain) Set(handlers []Handler) {
 	c.handlers = handlers
 }
 
@@ -30,8 +30,9 @@ func (c *HandlersChain) Next() {
 	if c.IsStopped() {
 		return
 	}
-	c.handlers[c.currentIndex](c.context)
+	n := c.currentIndex
 	c.currentIndex += 1
+	c.handlers[n](c.context)
 }
 
 func (c *HandlersChain) Skip() {

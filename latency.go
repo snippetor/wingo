@@ -10,7 +10,7 @@ import (
 // This is for the http requests.
 //
 // Receives an optional configuation.
-func Latency(ctx Context) {
+func Latency(ctx *Context) {
 	//all except latency to string
 	var latency time.Duration
 	var startTime, endTime time.Time

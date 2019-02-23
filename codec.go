@@ -17,6 +17,7 @@ func init() {
 type Codec interface {
 	Marshal(interface{}) ([]byte, error)
 	Unmarshal([]byte, interface{}) error
+	Name() string
 }
 
 func SetCodec(c Codec) {
@@ -35,6 +36,10 @@ func (j *JsonCodec) Unmarshal(data []byte, v interface{}) error {
 	return json.Unmarshal(data, v)
 }
 
+func (j *JsonCodec) Name() string {
+	return "json"
+}
+
 // Protobuf消息协议
 type ProtobufCodec struct {
 }
@@ -45,4 +50,8 @@ func (p *ProtobufCodec) Marshal(v interface{}) ([]byte, error) {
 
 func (p *ProtobufCodec) Unmarshal(data []byte, v interface{}) error {
 	return proto.Unmarshal(data, v.(proto.Message))
+}
+
+func (p *ProtobufCodec) Name() string {
+	return "protobuf"
 }

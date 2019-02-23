@@ -30,8 +30,7 @@ func Recover(ctx *Context) {
 			logMessage += fmt.Sprintf("Trace: %s\n", err)
 			logMessage += fmt.Sprintf("\n%s", stacktrace)
 			ctx.LogE(logMessage)
-			ctx.Response.SetStatusCode(fasthttp.StatusInternalServerError)
-			ctx.ResponseBody(map[string]string{error: fmt.Sprintf("%s", err)})
+			ctx.Error(fmt.Sprintf("%s", err), fasthttp.StatusInternalServerError)
 			ctx.Stop()
 		}
 	}()

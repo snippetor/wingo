@@ -1,5 +1,9 @@
 package wingo
 
+import (
+	p "path"
+)
+
 type RouterMethod struct {
 	path       string
 	method     string
@@ -7,10 +11,11 @@ type RouterMethod struct {
 }
 
 type Router struct {
-	routes map[string]map[string][]Handler
+	routes       map[string]map[string][]Handler
+	TempBasePath string
 }
 
-func newRounter() *Router {
+func newRouter() *Router {
 	return &Router{routes: make(map[string]map[string][]Handler)}
 }
 
@@ -37,6 +42,7 @@ func (r *Router) apply(handlers *[]Handler) bool {
 }
 
 func (r *Router) handle(path string, method string, handlers ...Handler) {
+	path = p.Join("/", r.TempBasePath, path)
 	r.apply(&handlers)
 	if _, found := r.routes[method]; !found {
 		r.routes[method] = make(map[string][]Handler)
@@ -45,9 +51,23 @@ func (r *Router) handle(path string, method string, handlers ...Handler) {
 }
 
 func (r *Router) Get(path string, handlers ...Handler) {
+	r.handle(path, "GET", handlers...)
 }
 
 func (r *Router) Post(path string, handlers ...Handler) {
+	r.handle(path, "POST", handlers...)
+}
+
+func (r *Router) Put(path string, handlers ...Handler) {
+	r.handle(path, "PUT", handlers...)
+}
+
+func (r *Router) Delete(path string, handlers ...Handler) {
+	r.handle(path, "DELETE", handlers...)
+}
+
+func (r *Router) Options(path string, handlers ...Handler) {
+	r.handle(path, "OPTIONS", handlers...)
 }
 
 func (r *Router) getRequestHandlers(method, path string) []Handler {
@@ -55,8 +75,10 @@ func (r *Router) getRequestHandlers(method, path string) []Handler {
 	if route, found := r.routes[method]; found {
 		if handlers, found := route[path]; found {
 			if len(handlers) > 0 {
-				copy(newHandlers, globalMiddleWares)
-				r.apply(&newHandlers)
+				if len(globalMiddleWares) > 0 {
+					newHandlers = append(newHandlers, globalMiddleWares...)
+					r.apply(&newHandlers)
+				}
 				newHandlers = append(newHandlers, handlers...)
 			}
 		}
