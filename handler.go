@@ -1,34 +1,32 @@
 package wingo
 
-type Handler func(Context)
+import (
+	"reflect"
+	"runtime"
+)
 
-type HandlersChain interface {
-	Append(...Handler)
-	Set(...Handler)
+type Handler func(*Context)
 
-	Next()
-	Skip()
-	Reset()
-	Stop()
-	IsStopped() bool
-	Handlers() []Handler
+func (h Handler) Name() string {
+	pc := reflect.ValueOf(h).Pointer()
+	return runtime.FuncForPC(pc).Name()
 }
 
-type handlersChain struct {
+type HandlersChain struct {
 	handlers     []Handler
 	currentIndex int
-	context      Context
+	context      *Context
 }
 
-func (c *handlersChain) Append(handlers ...Handler) {
+func (c *HandlersChain) Append(handlers ...Handler) {
 	c.handlers = append(c.handlers, handlers...)
 }
 
-func (c *handlersChain) Set(handlers ...Handler) {
+func (c *HandlersChain) Set(handlers ...Handler) {
 	c.handlers = handlers
 }
 
-func (c *handlersChain) Next() {
+func (c *HandlersChain) Next() {
 	if c.IsStopped() {
 		return
 	}
@@ -36,22 +34,29 @@ func (c *handlersChain) Next() {
 	c.currentIndex += 1
 }
 
-func (c *handlersChain) Skip() {
+func (c *HandlersChain) Skip() {
 	c.currentIndex += 1
 }
 
-func (c *handlersChain) Reset() {
+func (c *HandlersChain) Reset() {
 	c.currentIndex = 0
 }
 
-func (c *handlersChain) Stop() {
+func (c *HandlersChain) Stop() {
 	c.currentIndex = len(c.handlers)
 }
 
-func (c *handlersChain) IsStopped() bool {
+func (c *HandlersChain) IsStopped() bool {
 	return c.currentIndex >= len(c.handlers)
 }
 
-func (c *handlersChain) Handlers() []Handler {
+func (c *HandlersChain) Handlers() []Handler {
 	return c.handlers
+}
+
+func (c *HandlersChain) CurrentHandlerName() string {
+	if c.currentIndex >= len(c.handlers) {
+		return "unknown"
+	}
+	return c.handlers[c.currentIndex].Name()
 }

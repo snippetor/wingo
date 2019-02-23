@@ -1,5 +1,8 @@
 module github.com/snippetor/wingo
 
-replace golang.org/x/net => github.com/golang/net v0.0.0-20190213061140-3a22650c66bd
-
-require github.com/valyala/fasthttp v1.2.0 // indirect
+require (
+	github.com/gogo/protobuf v1.2.1
+	github.com/snippetor/logger v0.0.0-20190223051956-26612890449b
+	github.com/valyala/fasthttp v1.2.0
+	golang.org/x/sys v0.0.0-20190215142949-d0b11bdaac8a // indirect
+)

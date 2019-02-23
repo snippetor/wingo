@@ -1,64 +1,80 @@
 package wingo
 
 import (
-	"encoding/json"
+	"fmt"
 	"github.com/valyala/fasthttp"
+	"sync/atomic"
 )
 
-func contextLog(c Context) {
+var lastCapturedContextID uint32
 
+func ContextLog(c *Context) {
+	c.LogD(">>>[%s] %s %s", string(c.Method()), string(c.Path()), string(c.Request.Body()))
+	c.Next()
+	c.LogD("<<<[%s] %s %s", string(c.Method()), string(c.Path()), string(c.Response.Body()))
 }
 
-type Context interface {
-	Next()
-	Stop()
+type Context struct {
+	fasthttp.RequestCtx
+	id    uint32
+	chain *HandlersChain
 }
 
-func NewContext() Context {
-	c := &context{}
-	c.chain = &handlersChain{context: c}
-	return c
+func (c *Context) Id() uint32 {
+	if c.id == 0 {
+		// set the id here.
+		forward := atomic.AddUint32(&lastCapturedContextID, 1)
+		c.id = forward
+	}
+	return c.id
 }
 
-type context struct {
-	chain HandlersChain
-	ctx   *fasthttp.RequestCtx
+func (c *Context) Proceed(h Handler) bool {
+	beforeIdx := c.chain.currentIndex
+	h(c)
+	if c.chain.currentIndex > beforeIdx && !c.IsStopped() {
+		return true
+	}
+	return false
 }
 
-func (c *context) Next() {
+func (c *Context) Next() {
 	c.chain.Next()
 }
 
-func (c *context) Stop() {
+func (c *Context) Stop() {
 	c.chain.Stop()
 }
 
-func (c *context) IsStopped() bool {
+func (c *Context) IsStopped() bool {
 	return c.chain.IsStopped()
 }
 
-func (c *context) RequestBody(body interface{}) {
-	json.Unmarshal(c.ctx.Request.Body(), body)
+func (c *Context) RequestBody(body interface{}) {
+	globalCodec.Unmarshal(c.Request.Body(), body)
 }
 
-func (c *context) ResponseOK(body interface{}) {
-	c.ctx.Response.SetStatusCode(fasthttp.StatusOK)
-	bs, err := c.Codec.Marshal(body)
+func (c *Context) ResponseBody(body interface{}) {
+	c.Response.SetStatusCode(fasthttp.StatusOK)
+	bs, err := globalCodec.Marshal(body)
 	if err != nil {
 		panic(err)
 	}
-	c.ctx.Response.SetBody(bs)
-	c.LogD("<<< %s %s", string(c.RequestCtx.Path()), string(bs))
+	c.Response.SetBody(bs)
 }
 
-func (c *context) ResponseFailed(reason string) {
-	c.ctx.Response.SetStatusCode(fasthttp.StatusOK)
-	params := make(map[string]interface{})
-	params["error"] = reason
-	bs, err := c.Codec.Marshal(params)
-	if err != nil {
-		panic(err)
-	}
-	c.RequestCtx.Response.SetBody(bs)
-	c.LogD("<<< %s %s", string(c.RequestCtx.Path()), string(bs))
+func (c *Context) LogE(format string, v ...interface{}) {
+	Log.E(fmt.Sprintf("[%010v] ", c.Id())+format, v...)
+}
+
+func (c *Context) LogD(format string, v ...interface{}) {
+	Log.D(fmt.Sprintf("[%010v] ", c.Id())+format, v...)
+}
+
+func (c *Context) LogW(format string, v ...interface{}) {
+	Log.W(fmt.Sprintf("[%010v] ", c.Id())+format, v...)
+}
+
+func (c *Context) LogI(format string, v ...interface{}) {
+	Log.I(fmt.Sprintf("[%010v] ", c.Id())+format, v...)
 }

@@ -2,30 +2,11 @@ package wingo
 
 import (
 	"fmt"
-	"reflect"
+	"github.com/valyala/fasthttp"
 	"runtime"
 )
 
-func getRequestLogs(ctx app.Context) string {
-	switch ctx.(type) {
-	case *app.RpcContext:
-		c := ctx.(*app.RpcContext)
-		return fmt.Sprintf("[RPC] call '%s' method %s", c.App().Name(), c.Method)
-	case *app.ServiceContext:
-		c := ctx.(*app.ServiceContext)
-		return fmt.Sprintf("[SOC] '%s' %v %v %v %v, %v", c.App().Name(), c.MessageType, c.MessageGroup, c.MessageExtra, c.MessageId, c.MessageBody.RawContent)
-	case *app.WebApiContext:
-		c := ctx.(*app.WebApiContext)
-		return fmt.Sprintf("[API] '%s' %s %s %s", c.App().Name(), string(c.RequestCtx.Path()), string(c.RequestCtx.Method()), c.RequestCtx.RemoteIP().String())
-	default:
-		return fmt.Sprintf("[UFO] unknown ctx type %v", reflect.TypeOf(ctx))
-	}
-}
-
-// New returns a new recover middleware,
-// it recovers from panics and logs
-// the panic message to the application's logger "Warn" level.
-func Recover(ctx app.Context) {
+func Recover(ctx *Context) {
 	defer func() {
 		if err := recover(); err != nil {
 			if ctx.IsStopped() {
@@ -44,23 +25,14 @@ func Recover(ctx app.Context) {
 			}
 
 			// when stack finishes
-			logMessage := fmt.Sprintf("Recovered from a route's Handler('%s')\n", ctx.HandlerName())
-			logMessage += fmt.Sprintf("At Request: %s\n", getRequestLogs(ctx))
+			logMessage := fmt.Sprintf("Recovered from a route's Handler('%s')\n", ctx.chain.CurrentHandlerName())
+			logMessage += fmt.Sprintf("At Request: %s\n", fmt.Sprintf("%s %s %s", string(ctx.Path()), string(ctx.Method()), ctx.RemoteIP().String()))
 			logMessage += fmt.Sprintf("Trace: %s\n", err)
 			logMessage += fmt.Sprintf("\n%s", stacktrace)
 			ctx.LogE(logMessage)
-			switch ctx.(type) {
-			case *app.RpcContext:
-				c := ctx.(*app.RpcContext)
-				c.ReturnNil()
-				//case *app.ServiceContext:
-				//c := ctx.(*app.ServiceContext)
-				//c.Ack(map[string]interface{}{"code": -1, "desc": fmt.Sprintf("%s", err)})
-			case *app.WebApiContext:
-				c := ctx.(*app.WebApiContext)
-				c.ResponseFailed(fmt.Sprintf("%s", err))
-			}
-			ctx.StopExecution()
+			ctx.Response.SetStatusCode(fasthttp.StatusInternalServerError)
+			ctx.ResponseBody(map[string]string{error: fmt.Sprintf("%s", err)})
+			ctx.Stop()
 		}
 	}()
 
