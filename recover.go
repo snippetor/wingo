@@ -25,8 +25,8 @@ func Recover(ctx *Context) {
 			}
 
 			// when stack finishes
-			logMessage := fmt.Sprintf("Recovered from a route's Handler('%s')\n", ctx.chain.CurrentHandlerName())
-			logMessage += fmt.Sprintf("At Request: %s\n", fmt.Sprintf("%s %s %s", string(ctx.Path()), string(ctx.Method()), ctx.RemoteIP().String()))
+			//logMessage := fmt.Sprintf("Recovered from a route's Handler('%s')\n", ctx.chain.CurrentHandlerName())
+			logMessage := fmt.Sprintf("ERROR At Request: %s\n", fmt.Sprintf("%s %s %s", string(ctx.Path()), string(ctx.Method()), ctx.RemoteIP().String()))
 			logMessage += fmt.Sprintf("Trace: %s\n", err)
 			logMessage += fmt.Sprintf("\n%s", stacktrace)
 			ctx.LogE(logMessage)

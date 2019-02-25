@@ -1,10 +1,10 @@
 package wingo
 
 import (
-	"fmt"
 	"github.com/snippetor/logger"
 	"github.com/valyala/fasthttp"
 	"path"
+	"reflect"
 	"strconv"
 	"sync"
 )
@@ -62,14 +62,31 @@ func (a *AppEngine) Group(group string) *AppEngine {
 	return a
 }
 
-func (a *AppEngine) Route(ctrls ...Controller) *AppEngine {
-	a.router.TempBasePath = path.Join("/", a.tempBasePath)
+func (a *AppEngine) Route(ctrls ...interface{}) *AppEngine {
+	ctx := &Context{RouteTester: &RouteTester{}}
 	for _, ctrl := range ctrls {
-		if IsController(ctrl) {
-			ctrl.Route(a.router)
+		t := reflect.TypeOf(ctrl)
+		for i := 0; i < t.NumMethod(); i++ {
+			ctx.RouteTester.Method = ""
+			ctx.RouteTester.Path = ""
+			m := t.Method(i)
+			var call = m.Func.Call
+			if m.Type.NumIn() == 2 && m.Type.In(1) == reflect.TypeOf(ctx) {
+				func() {
+					defer func() {
+						recover()
+					}()
+					call([]reflect.Value{reflect.ValueOf(ctrl), reflect.ValueOf(ctx)})
+				}()
+				if ctx.RouteTester.Method != "" && ctx.RouteTester.Path != "" {
+					p := path.Join("/", a.tempBasePath, ctx.RouteTester.Path)
+					a.router.handle(ctx.RouteTester.Method, p, func(c *Context) {
+						call([]reflect.Value{reflect.ValueOf(ctrl), reflect.ValueOf(c)})
+					})
+				}
+			}
 		}
 	}
-	a.router.TempBasePath = ""
 	a.tempBasePath = ""
 	return a
 }
@@ -77,7 +94,6 @@ func (a *AppEngine) Route(ctrls ...Controller) *AppEngine {
 func (a *AppEngine) Run(port int) {
 	Log.I("Server run on :%d", port)
 	err := fasthttp.ListenAndServe(":"+strconv.Itoa(port), func(req *fasthttp.RequestCtx) {
-		fmt.Println(string(req.Path()))
 		handlers := a.router.getRequestHandlers(string(req.Method()), string(req.Path()))
 		if len(handlers) == 0 {
 			req.Error("404 Not found ;(", fasthttp.StatusNotFound)
@@ -98,7 +114,7 @@ func (a *AppEngine) Run(port int) {
 		}
 		ctx.chain.Reset()
 		ctx.chain.Set(handlers)
-		ctx.chain.Next()
+		ctx.chain.Fire()
 	})
 	if err != nil {
 		panic(err)

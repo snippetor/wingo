@@ -16,8 +16,37 @@ func ContextLog(c *Context) {
 
 type Context struct {
 	*fasthttp.RequestCtx
-	id    uint32
-	chain *HandlersChain
+	id          uint32
+	chain       *HandlersChain
+	RouteTester *RouteTester
+}
+
+func (c *Context) Route(method, path string) {
+	if c.RouteTester != nil {
+		c.RouteTester.Method = method
+		c.RouteTester.Path = path
+		panic(TestRouteError(0))
+	}
+}
+
+func (c *Context) RouteGet(path string) {
+	c.Route("GET", path)
+}
+
+func (c *Context) RoutePost(path string) {
+	c.Route("POST", path)
+}
+
+func (c *Context) RoutePut(path string) {
+	c.Route("PUT", path)
+}
+
+func (c *Context) RouteDelete(path string) {
+	c.Route("DELETE", path)
+}
+
+func (c *Context) RouteOptions(path string) {
+	c.Route("OPTIONS", path)
 }
 
 func (c *Context) Id() uint32 {

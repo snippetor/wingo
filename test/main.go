@@ -7,11 +7,15 @@ import (
 type TestController struct {
 }
 
-func (c *TestController) Route(router *wingo.Router) {
-	router.Post("/hello", c.Test)
+func (c *TestController) Test(ctx *wingo.Context) {
+	ctx.RouteGet("/hello")
+
+	ctx.Success(&map[string]string{"Status": "OK"})
 }
 
-func (c *TestController) Test(ctx *wingo.Context) {
+func (c *TestController) Test1(ctx *wingo.Context) {
+	ctx.RouteGet("/hello1")
+
 	ctx.Success(&map[string]string{"Status": "OK"})
 }
 

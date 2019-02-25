@@ -26,13 +26,18 @@ func (c *HandlersChain) Set(handlers []Handler) {
 	c.handlers = handlers
 }
 
+func (c *HandlersChain) Fire() {
+	if len(c.handlers) > 0 {
+		c.handlers[0](c.context)
+	}
+}
+
 func (c *HandlersChain) Next() {
-	if c.IsStopped() {
+	c.currentIndex += 1
+	if c.currentIndex >= len(c.handlers) {
 		return
 	}
-	n := c.currentIndex
-	c.currentIndex += 1
-	c.handlers[n](c.context)
+	c.handlers[c.currentIndex](c.context)
 }
 
 func (c *HandlersChain) Skip() {
