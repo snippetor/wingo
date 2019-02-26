@@ -14,6 +14,7 @@ var (
 	Log               log.Logger
 	ctxPool           *sync.Pool
 	globalMiddleWares []Handler
+	authSecretKey     string
 )
 
 func init() {
@@ -46,10 +47,16 @@ func Use(middlewares ...Handler) {
 	globalMiddleWares = append(globalMiddleWares, middlewares...)
 }
 
+func SetAuthSecrectKey(key string) {
+	authSecretKey = key
+}
+
 type AppEngine struct {
 	config       *log.Config
 	router       *Router
+	namespace    string
 	tempBasePath string
+	hasAuthGroup bool
 }
 
 func Default() *AppEngine {
@@ -57,8 +64,18 @@ func Default() *AppEngine {
 	return &AppEngine{router: newRouter()}
 }
 
+func (a *AppEngine) Namespace(ns string) *AppEngine {
+	a.namespace = ns
+	return a
+}
+
 func (a *AppEngine) Group(group string) *AppEngine {
 	a.tempBasePath = path.Join(a.tempBasePath, group)
+	return a
+}
+
+func (a *AppEngine) GroupAuth(group string) *AppEngine {
+	a.hasAuthGroup = true
 	return a
 }
 
@@ -79,22 +96,29 @@ func (a *AppEngine) Route(ctrls ...interface{}) *AppEngine {
 					call([]reflect.Value{reflect.ValueOf(ctrl), reflect.ValueOf(ctx)})
 				}()
 				if ctx.RouteTester.Method != "" && ctx.RouteTester.Path != "" {
-					p := path.Join("/", a.tempBasePath, ctx.RouteTester.Path)
-					a.router.handle(ctx.RouteTester.Method, p, func(c *Context) {
-						call([]reflect.Value{reflect.ValueOf(ctrl), reflect.ValueOf(c)})
-					})
+					p := path.Join("/", a.namespace, a.tempBasePath, ctx.RouteTester.Path)
+					if a.hasAuthGroup || ctx.RouteTester.NeedAuth {
+						a.router.handle(ctx.RouteTester.Method, p, checkAuthorization, func(c *Context) {
+							call([]reflect.Value{reflect.ValueOf(ctrl), reflect.ValueOf(c)})
+						})
+					} else {
+						a.router.handle(ctx.RouteTester.Method, p, func(c *Context) {
+							call([]reflect.Value{reflect.ValueOf(ctrl), reflect.ValueOf(c)})
+						})
+					}
 				}
 			}
 		}
 	}
 	a.tempBasePath = ""
+	a.hasAuthGroup = false
 	return a
 }
 
 func (a *AppEngine) Run(port int) {
 	Log.I("Server run on :%d", port)
 	err := fasthttp.ListenAndServe(":"+strconv.Itoa(port), func(req *fasthttp.RequestCtx) {
-		handlers := a.router.getRequestHandlers(string(req.Method()), string(req.Path()))
+		handlers := a.router.getRequestHandlers(Bytes2String(req.Method()), Bytes2String(req.Path()))
 		if len(handlers) == 0 {
 			req.Error("404 Not found ;(", fasthttp.StatusNotFound)
 			return

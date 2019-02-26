@@ -7,7 +7,7 @@ type RouterMethod struct {
 }
 
 type Router struct {
-	routes       map[string]map[string][]Handler
+	routes map[string]map[string][]Handler
 }
 
 func newRouter() *Router {
@@ -61,6 +61,7 @@ func (r *Router) getRequestHandlers(method, path string) []Handler {
 }
 
 type RouteTester struct {
-	Method string
-	Path   string
+	Method   string
+	Path     string
+	NeedAuth bool
 }
