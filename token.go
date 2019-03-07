@@ -78,7 +78,8 @@ func unmarshalToken(token string) (bool, *TokenPayload) {
 	// sign
 	sign := String2Bytes(arr[1])
 	signBuf := make([]byte, base64.RawURLEncoding.DecodedLen(len(arr[1])))
-	base64.RawURLEncoding.Decode(signBuf, sign)
+	_, err := base64.RawURLEncoding.Decode(signBuf, sign)
+	CheckError(err)
 
 	mac.Reset()
 	mac.Write(p)
@@ -87,10 +88,11 @@ func unmarshalToken(token string) (bool, *TokenPayload) {
 	}
 	// payload
 	payloadBuf := make([]byte, base64.RawURLEncoding.DecodedLen(len(p)))
-	base64.RawURLEncoding.Decode(payloadBuf, p)
+	_, err = base64.RawURLEncoding.Decode(payloadBuf, p)
+	CheckError(err)
 
 	tp := &TokenPayload{}
-	err := codec.Unmarshal(payloadBuf, tp)
+	err = codec.Unmarshal(payloadBuf, tp)
 	CheckError(err)
 
 	return true, tp
