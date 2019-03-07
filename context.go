@@ -98,7 +98,7 @@ func (c *Context) SuccessAuth(tokenPayload *TokenPayload, body interface{}) {
 	if err != nil {
 		panic(err)
 	}
-	c.Response.Header.Set("Authorization", marshalToken(tokenPayload, authSecretKey))
+	c.Response.Header.Set("Authorization", marshalToken(tokenPayload))
 	c.Response.SetBody(bs)
 }
 

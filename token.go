@@ -4,23 +4,34 @@ import (
 	"crypto/hmac"
 	"crypto/sha256"
 	"encoding/base64"
-	"encoding/json"
 	"github.com/valyala/fasthttp"
+	"hash"
 	"strings"
-	"time"
 )
 
 type TokenPayload struct {
-	Id     uint32            `json:"id"`
+	Id     int64             `json:"id"`
 	Name   string            `json:"name"`
-	Expire time.Duration     `json:"expire"`
+	Expire int64             `json:"expire"`
 	Extra  map[string]string `json:"extra"`
 }
 
+var (
+	mac   hash.Hash
+	codec Codec
+)
+
+func init() {
+	codec = &JsonCodec{}
+}
+
+func SetAuthSecretKey(authSecretKey string) {
+	mac = hmac.New(sha256.New, String2Bytes(authSecretKey))
+}
+
 func checkAuthorization(ctx *Context) {
-	if authSecretKey == "" {
-		Log.E("need set authorization secret key at first!")
-		return
+	if mac == nil {
+		panic("need set authorization secret key at first!")
 	}
 	token := ctx.Request.Header.Peek("Authorization")
 	if token == nil {
@@ -28,7 +39,7 @@ func checkAuthorization(ctx *Context) {
 		ctx.Stop()
 		return
 	}
-	if pass, payload := unmarshalToken(Bytes2String(token), authSecretKey); pass {
+	if pass, payload := unmarshalToken(Bytes2String(token)); pass {
 		ctx.TokenPayload = payload
 		ctx.Next()
 	} else {
@@ -37,14 +48,17 @@ func checkAuthorization(ctx *Context) {
 	}
 }
 
-func marshalToken(payload *TokenPayload, privateSecret string) string {
+func marshalToken(payload *TokenPayload) string {
+	if mac == nil {
+		panic("need set authorization secret key at first!")
+	}
 	// payload
-	bytes, err := json.Marshal(payload)
+	bytes, err := codec.Marshal(payload)
 	CheckError(err)
 	payloadBuf := make([]byte, base64.RawURLEncoding.EncodedLen(len(bytes)))
 	base64.RawURLEncoding.Encode(payloadBuf, bytes)
 	// sign
-	mac := hmac.New(sha256.New, String2Bytes(privateSecret))
+	mac.Reset()
 	mac.Write(payloadBuf)
 	sign := mac.Sum(nil)
 	signBuf := make([]byte, base64.RawURLEncoding.EncodedLen(len(sign)))
@@ -52,7 +66,10 @@ func marshalToken(payload *TokenPayload, privateSecret string) string {
 	return Bytes2String(payloadBuf) + "/" + Bytes2String(signBuf)
 }
 
-func unmarshalToken(token, privateSecret string) (bool, *TokenPayload) {
+func unmarshalToken(token string) (bool, *TokenPayload) {
+	if mac == nil {
+		panic("need set authorization secret key at first!")
+	}
 	arr := strings.Split(token, "/")
 	if len(arr) != 2 {
 		return false, nil
@@ -63,7 +80,7 @@ func unmarshalToken(token, privateSecret string) (bool, *TokenPayload) {
 	signBuf := make([]byte, base64.RawURLEncoding.DecodedLen(len(arr[1])))
 	base64.RawURLEncoding.Decode(signBuf, sign)
 
-	mac := hmac.New(sha256.New, String2Bytes(privateSecret))
+	mac.Reset()
 	mac.Write(p)
 	if !hmac.Equal(signBuf, mac.Sum(nil)) {
 		return false, nil
@@ -73,7 +90,7 @@ func unmarshalToken(token, privateSecret string) (bool, *TokenPayload) {
 	base64.RawURLEncoding.Decode(payloadBuf, p)
 
 	tp := &TokenPayload{}
-	err := json.Unmarshal(payloadBuf, tp)
+	err := codec.Unmarshal(payloadBuf, tp)
 	CheckError(err)
 
 	return true, tp

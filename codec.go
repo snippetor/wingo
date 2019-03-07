@@ -1,8 +1,8 @@
 package wingo
 
 import (
-	"encoding/json"
 	"github.com/gogo/protobuf/proto"
+	"github.com/json-iterator/go"
 )
 
 var (
@@ -29,11 +29,11 @@ type JsonCodec struct {
 }
 
 func (j *JsonCodec) Marshal(v interface{}) ([]byte, error) {
-	return json.Marshal(v)
+	return jsoniter.ConfigCompatibleWithStandardLibrary.Marshal(v)
 }
 
 func (j *JsonCodec) Unmarshal(data []byte, v interface{}) error {
-	return json.Unmarshal(data, v)
+	return jsoniter.ConfigCompatibleWithStandardLibrary.Unmarshal(data, v)
 }
 
 func (j *JsonCodec) Name() string {

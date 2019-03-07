@@ -14,7 +14,6 @@ var (
 	Log               log.Logger
 	ctxPool           *sync.Pool
 	globalMiddleWares []Handler
-	authSecretKey     string
 )
 
 func init() {
@@ -45,10 +44,6 @@ func SetLogConfig(c *log.Config) {
 
 func Use(middlewares ...Handler) {
 	globalMiddleWares = append(globalMiddleWares, middlewares...)
-}
-
-func SetAuthSecrectKey(key string) {
-	authSecretKey = key
 }
 
 type AppEngine struct {
