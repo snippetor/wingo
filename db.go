@@ -12,10 +12,10 @@ type SqlDB interface {
 	Dial(dbType SqlDBType, host, port, user, pwd, defaultDb, tbPrefix string, debugMode bool)
 	DB() *gorm.DB
 	TableName(tbName string) string
-	AutoMigrate(model interface{})
+	AutoMigrate(model SqlModel)
 
-	Create(model interface{}) bool
-	Find(model interface{}) bool
+	Create(model SqlModel) bool
+	Find(model SqlModel) bool
 	FindAll(models interface{}) bool
 	FindMany(models interface{}, limit int, orderBy string, whereAndArgs ...interface{}) bool
 	Begin() *gorm.DB

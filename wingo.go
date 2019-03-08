@@ -122,12 +122,7 @@ func (a *AppEngine) Run(port int) {
 		defer ctxPool.Put(ctx)
 		ctx.id = 0
 		ctx.RequestCtx = req
-		switch globalCodec.Name() {
-		case "json":
-			ctx.SetContentType("application/json")
-		case "protobuf":
-			ctx.SetContentType("application/protobuf")
-		}
+		ctx.SetContentType(globalCodec.ContentType())
 		if ctx.chain == nil {
 			ctx.chain = &HandlersChain{context: ctx}
 		}

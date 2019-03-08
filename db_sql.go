@@ -46,21 +46,13 @@ func (m *sqlDB) TableName(tbName string) string {
 	return tbName
 }
 
-func (m *sqlDB) AutoMigrate(model interface{}) {
-	if mod, ok := model.(interface {
-		Init(*gorm.DB, interface{})
-	}); ok {
-		mod.Init(m.db, model)
-	}
+func (m *sqlDB) AutoMigrate(model SqlModel) {
+	model.init(m.db, model)
 	m.DB().AutoMigrate(model)
 }
 
-func (m *sqlDB) Create(model interface{}) bool {
-	if mod, ok := model.(interface {
-		Init(*gorm.DB, interface{})
-	}); ok {
-		mod.Init(m.db, model)
-	}
+func (m *sqlDB) Create(model SqlModel) bool {
+	model.init(m.db, model)
 	res := m.DB().Create(model)
 	if res.Error != nil {
 		panic(res.Error)
@@ -68,12 +60,8 @@ func (m *sqlDB) Create(model interface{}) bool {
 	return true
 }
 
-func (m *sqlDB) Find(model interface{}) bool {
-	if mod, ok := model.(interface {
-		Init(*gorm.DB, interface{})
-	}); ok {
-		mod.Init(m.db, model)
-	}
+func (m *sqlDB) Find(model SqlModel) bool {
+	model.init(m.db, model)
 	res := m.DB().Where(model).First(model)
 	return res.Error == nil
 }

@@ -14,10 +14,10 @@ func init() {
 	globalCodec = &JsonCodec{}
 }
 
-// 数据传输协议，即包体格式
 type Codec interface {
 	Marshal(interface{}) ([]byte, error)
 	Unmarshal([]byte, interface{}) error
+	ContentType() string
 	Name() string
 }
 
@@ -41,6 +41,10 @@ func (j *JsonCodec) Name() string {
 	return "json"
 }
 
+func (j *JsonCodec) ContentType() string {
+	return "application/json"
+}
+
 // Protobuf消息协议
 type ProtobufCodec struct {
 }
@@ -57,18 +61,26 @@ func (p *ProtobufCodec) Name() string {
 	return "protobuf"
 }
 
+func (j *ProtobufCodec) ContentType() string {
+	return "application/protobuf"
+}
+
 // Msgpack消息协议
 type MsgPackCodec struct {
 }
 
 func (p *MsgPackCodec) Marshal(v interface{}) ([]byte, error) {
-	return msgpack.Encode(v.(proto.Message))
+	return msgpack.Encode(v)
 }
 
 func (p *MsgPackCodec) Unmarshal(data []byte, v interface{}) error {
-	return msgpack.Decode(data, v.(proto.Message))
+	return msgpack.Decode(data, v)
 }
 
 func (p *MsgPackCodec) Name() string {
 	return "msgpack"
+}
+
+func (j *MsgPackCodec) ContentType() string {
+	return "application/msgpack"
 }
