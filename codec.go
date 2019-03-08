@@ -3,6 +3,7 @@ package wingo
 import (
 	"github.com/gogo/protobuf/proto"
 	"github.com/json-iterator/go"
+	"github.com/shamaton/msgpack"
 )
 
 var (
@@ -54,4 +55,20 @@ func (p *ProtobufCodec) Unmarshal(data []byte, v interface{}) error {
 
 func (p *ProtobufCodec) Name() string {
 	return "protobuf"
+}
+
+// Msgpack消息协议
+type MsgPackCodec struct {
+}
+
+func (p *MsgPackCodec) Marshal(v interface{}) ([]byte, error) {
+	return msgpack.Encode(v.(proto.Message))
+}
+
+func (p *MsgPackCodec) Unmarshal(data []byte, v interface{}) error {
+	return msgpack.Decode(data, v.(proto.Message))
+}
+
+func (p *MsgPackCodec) Name() string {
+	return "msgpack"
 }
