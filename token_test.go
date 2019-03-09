@@ -34,30 +34,26 @@ func TestToken(a *testing.T) {
 
 func BenchmarkMarshalToken(b *testing.B) {
 	b.ReportAllocs()
-	b.StartTimer()
 	for i := 0; i < b.N; i++ {
 		_ = marshalToken(&TokenPayload{Id: 20001, Name: "carl", Expire: time.Now().Unix()})
 	}
-	b.StopTimer()
 }
 
 func BenchmarkUnmarshalToken(b *testing.B) {
 	b.ReportAllocs()
+	b.StopTimer()
 	token := marshalToken(&TokenPayload{Id: 20001, Name: "carl", Expire: time.Now().Unix()})
 	b.StartTimer()
 	for i := 0; i < b.N; i++ {
 		_, _ = unmarshalToken(token)
 	}
-	b.StopTimer()
 }
 
 func BenchmarkMarshalJSON(b *testing.B) {
 	b.ReportAllocs()
-	b.StartTimer()
 	for i := 0; i < b.N; i++ {
 		_, _ = json.Marshal(&TokenPayload{Id: 20001, Name: "carl", Extra: map[string]string{"test": "test"}})
 	}
-	b.StopTimer()
 }
 
 func BenchmarkMarshalJSONGoIter(b *testing.B) {
@@ -66,5 +62,4 @@ func BenchmarkMarshalJSONGoIter(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		_, _ = jsoniter.Marshal(&TokenPayload{Id: 20001, Name: "carl", Extra: map[string]string{"test": "test"}})
 	}
-	b.StopTimer()
 }

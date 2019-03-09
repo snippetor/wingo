@@ -4,10 +4,10 @@ import (
 	"github.com/jinzhu/gorm"
 )
 
-var jsonCodec Codec
+var msgpackCodec Codec
 
 func init() {
-	jsonCodec = &JsonCodec{}
+	msgpackCodec = &MsgPackCodec{}
 }
 
 type BaseSqlModel struct {
@@ -54,11 +54,11 @@ func (m *BaseSqlModel) DelInTx(tx *gorm.DB) {
 }
 
 func (m *BaseSqlModel) FieldToString(f interface{}) string {
-	bs, err := jsonCodec.Marshal(f)
+	bs, err := msgpackCodec.Marshal(f)
 	CheckError(err)
-	return string(bs)
+	return Bytes2String(bs)
 }
 
 func (m *BaseSqlModel) FieldFromString(s string, f interface{}) {
-	jsonCodec.Unmarshal([]byte(s), f)
+	msgpackCodec.Unmarshal(String2Bytes(s), f)
 }
